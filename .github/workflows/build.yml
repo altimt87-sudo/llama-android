@@ -11,9 +11,15 @@ jobs:
     steps:
       - name: Клонируем LLamaSharp вместе с llama.cpp нужной версии
         run: |
-          git clone --depth 1 --branch "${{ inputs.llamasharp_ref }}" \
-            --recurse-submodules --shallow-submodules \
-            https://github.com/SciSharp/LLamaSharp.git src
+          URL=https://github.com/SciSharp/LLamaSharp.git
+          TAG=$(git ls-remote --tags "$URL" | grep -E 'refs/tags/[^/]*0\.30\.0$' | head -1 | sed 's#.*refs/tags/##')
+          echo "Найденный тег: '$TAG'"
+          if [ -z "$TAG" ]; then
+            echo "ТЕГ 0.30.0 НЕ НАЙДЕН. Последние теги:"
+            git ls-remote --tags "$URL" | sed 's#.*refs/tags/##' | tail -20
+            exit 1
+          fi
+          git clone --depth 1 --branch "$TAG" --recurse-submodules --shallow-submodules "$URL" src
           cd src/llama.cpp && echo "llama.cpp commit:" && git log -1 --format=%H
 
       - name: Сборка под ARMv8.2 + dotprod (без i8mm)
